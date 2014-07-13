@@ -1,3 +1,7 @@
+# Example code for TMVA in pyROOT
+# By Andrea Holzner
+# http://aholzner.wordpress.com/2011/08/27/a-tmva-example-in-pyroot/
+
 import ROOT
  
 # create a TNtuple
@@ -34,3 +38,42 @@ ntuple.SetMarkerColor(ROOT.kBlue)
 ntuple.Draw("y:x","signal <= 0.5","same")
 
 ROOT.c1.SaveAs("scatter.png")
+
+factory.AddVariable("x","F")
+factory.AddVariable("y","F") 
+ 
+factory.AddSignalTree(ntuple)
+factory.AddBackgroundTree(ntuple)
+ 
+# cuts defining the signal and background sample
+sigCut = ROOT.TCut("signal > 0.5")
+bgCut = ROOT.TCut("signal <= 0.5")
+ 
+factory.PrepareTrainingAndTestTree(sigCut,   # signal events
+                                   bgCut,    # background events
+                                   ":".join([
+                                        "nTrain_Signal=0",
+                                        "nTrain_Background=0",
+                                        "SplitMode=Random",
+                                        "NormMode=NumEvents",
+                                        "!V"
+                                       ]))
+
+method = factory.BookMethod(ROOT.TMVA.Types.kBDT, "BDT",
+                   ":".join([
+                       "!H",
+                       "!V",
+                       "NTrees=850",
+                       "nEventsMin=150",
+                       "MaxDepth=3",
+                       "BoostType=AdaBoost",
+                       "AdaBoostBeta=0.5",
+                       "SeparationType=GiniIndex",
+                       "nCuts=20",
+                       "PruneMethod=NoPruning",
+                       ]))
+ 
+factory.TrainAllMethods()
+factory.TestAllMethods()
+factory.EvaluateAllMethods()
+
